@@ -3785,6 +3785,25 @@ void GCS_MAVLINK::send_timesync()
 
 void GCS_MAVLINK::handle_statustext(const mavlink_message_t &msg) const
 {
+
+    // Retranslator block, used to pass STATUSTEXT msg: ROS2 (RP5) --> FCU (ArduPilot) --> MP (GCS). 
+    // It is used for easier notification about errors and etc, that come from RP5 side.
+
+    mavlink_statustext_t packet_st_txt;
+    mavlink_msg_statustext_decode(&msg, &packet_st_txt);
+
+    char safe_buf[50];
+    snprintf(safe_buf, sizeof(safe_buf), "%s", packet_st_txt.text);
+
+    hal.console->printf(">>> RELAY STATUSTEXT: <<<%s>>>\n", safe_buf);
+
+    for (uint8_t i=0; i<gcs().num_gcs(); i++) {
+        GCS_MAVLINK *link = gcs().chan(i);
+        if (link) {
+            link->send_text(MAV_SEVERITY_WARNING, "%s", safe_buf);
+        }
+    }
+
 #if HAL_LOGGING_ENABLED
     AP_Logger *logger = AP_Logger::get_singleton();
     if (logger == nullptr) {

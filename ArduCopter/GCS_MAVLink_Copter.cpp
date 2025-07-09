@@ -1271,17 +1271,6 @@ void GCS_MAVLINK_Copter::handle_message(const mavlink_message_t &msg)
         break;
 #endif
 
-    case MAVLINK_MSG_ID_STATUSTEXT: {
-        // твоя логика пересылки сообщения на другие MAVLink каналы
-        for (uint8_t i = 0; i < copter.gcs().num_gcs(); i++) {
-            GCS_MAVLINK *other_link = copter.gcs().chan(i);
-            if (other_link != nullptr && other_link != this) {
-                other_link->send_message(msg.msgid, (const char*)&msg.payload64[0]);
-            }
-        }
-        break;
-    }
-
     default:
         GCS_MAVLINK::handle_message(msg);
         break;
