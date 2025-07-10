@@ -5,19 +5,17 @@
  * This should not be confused with the AutoTune feature which can be found in control_autotune.cpp
  */
 
-// tuning - updates parameters based on the ch6 TRANSMITTER_TUNING channel knob's position
+// tuning - updates parameters based on the TRANSMITTER_TUNING channel knob's position
 //  should be called at 3.3hz
 void Copter::tuning()
 {
-    const RC_Channel *rc_tuning = rc().find_channel_for_option(RC_Channel::AUX_FUNC::TRANSMITTER_TUNING);
-
     // exit immediately if tuning channel is not set
     if (rc_tuning == nullptr) {
         return;
     }
     
     // exit immediately if the tuning function is not set or min and max are both zero
-    if ((g.radio_tuning <= 0) || (is_zero(g2.tuning_min.get()) && is_zero(g2.tuning_max.get()))) {
+    if ((g.rc_tuning_param <= 0) || (is_zero(g2.tuning_min.get()) && is_zero(g2.tuning_max.get()))) {
         return;
     }
 
@@ -26,14 +24,14 @@ void Copter::tuning()
         return;
     }
 
-    const uint16_t radio_in = rc_tuning->get_radio_in();
-    float tuning_value = linear_interpolate(g2.tuning_min, g2.tuning_max, radio_in, rc_tuning->get_radio_min(), rc_tuning->get_radio_max());
-    
+    const float control_in = rc_tuning->norm_input_ignore_trim();
+    const float tuning_value = linear_interpolate(g2.tuning_min, g2.tuning_max, control_in, -1, 1);
+
 #if HAL_LOGGING_ENABLED
-    Log_Write_Parameter_Tuning(g.radio_tuning, tuning_value, g2.tuning_min, g2.tuning_max);
+    Log_Write_Parameter_Tuning(g.rc_tuning_param, tuning_value, g2.tuning_min, g2.tuning_max);
 #endif
 
-    switch(g.radio_tuning) {
+    switch(g.rc_tuning_param) {
 
     // Roll, Pitch tuning
     case TUNING_STABILIZE_ROLL_PITCH_KP:

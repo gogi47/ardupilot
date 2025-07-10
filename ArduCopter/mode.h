@@ -173,9 +173,9 @@ public:
     virtual float crosstrack_error() const { return 0.0f;}
 
     // functions to support MAV_CMD_DO_CHANGE_SPEED
-    virtual bool set_speed_xy(float speed_xy_cms) {return false;}
-    virtual bool set_speed_up(float speed_xy_cms) {return false;}
-    virtual bool set_speed_down(float speed_xy_cms) {return false;}
+    virtual bool set_speed_xy_cms(float speed_xy_cms) {return false;}
+    virtual bool set_speed_up_cms(float speed_xy_cms) {return false;}
+    virtual bool set_speed_down_cms(float speed_xy_cms) {return false;}
 
     virtual int32_t get_alt_above_ground_cm(void) const;
 
@@ -329,17 +329,17 @@ public:
         void set_mode(Mode new_mode);
         Mode default_mode(bool rtl) const;
 
-        void set_rate(float new_rate_cds);
+        void set_rate_rad(float turn_rate_rads);
 
         // set_roi(...): set a "look at" location:
         void set_roi(const Location &roi_location);
 
-        void set_fixed_yaw(float angle_deg,
-                           float turn_rate_degs,
-                           int8_t direction,
-                           bool relative_angle);
+        void set_fixed_yaw_rad(float angle_rad,
+                               float turn_rate_rads,
+                               int8_t direction,
+                               bool relative_angle);
 
-        void set_yaw_angle_and_rate_deg(float yaw_angle_deg, float yaw_rate_degs);
+        void set_yaw_angle_and_rate_rad(float yaw_angle_rad, float yaw_rate_rads);
 
         void set_yaw_angle_offset_deg(const float yaw_angle_offset_deg);
 
@@ -574,9 +574,9 @@ public:
     bool is_taking_off() const override;
     bool use_pilot_yaw() const override;
 
-    bool set_speed_xy(float speed_xy_cms) override;
-    bool set_speed_up(float speed_up_cms) override;
-    bool set_speed_down(float speed_down_cms) override;
+    bool set_speed_xy_cms(float speed_xy_cms) override;
+    bool set_speed_up_cms(float speed_up_cms) override;
+    bool set_speed_down_cms(float speed_down_cms) override;
 
     bool requires_terrain_failsafe() const override { return true; }
 
@@ -1100,14 +1100,14 @@ public:
     //             IF false: climb_rate_cms_or_thrust represents climb_rate (cm/s)
     void set_angle(const Quaternion &attitude_quat, const Vector3f &ang_vel, float climb_rate_cms_or_thrust, bool use_thrust);
 
-    bool set_destination(const Vector3f& destination, bool use_yaw = false, float yaw_cd = 0.0, bool use_yaw_rate = false, float yaw_rate_cds = 0.0, bool yaw_relative = false, bool terrain_alt = false);
-    bool set_destination(const Location& dest_loc, bool use_yaw = false, float yaw_cd = 0.0, bool use_yaw_rate = false, float yaw_rate_cds = 0.0, bool yaw_relative = false);
+    bool set_destination(const Vector3f& destination, bool use_yaw = false, float yaw_rad = 0.0, bool use_yaw_rate = false, float yaw_rate_rads = 0.0, bool yaw_relative = false, bool terrain_alt = false);
+    bool set_destination(const Location& dest_loc, bool use_yaw = false, float yaw_rad = 0.0, bool use_yaw_rate = false, float yaw_rate_rads = 0.0, bool yaw_relative = false);
     bool get_wp(Location &loc) const override;
-    void set_accel(const Vector3f& acceleration, bool use_yaw = false, float yaw_cd = 0.0, bool use_yaw_rate = false, float yaw_rate_cds = 0.0, bool yaw_relative = false, bool log_request = true);
-    void set_velocity(const Vector3f& velocity, bool use_yaw = false, float yaw_cd = 0.0, bool use_yaw_rate = false, float yaw_rate_cds = 0.0, bool yaw_relative = false, bool log_request = true);
-    void set_velaccel(const Vector3f& velocity, const Vector3f& acceleration, bool use_yaw = false, float yaw_cd = 0.0, bool use_yaw_rate = false, float yaw_rate_cds = 0.0, bool yaw_relative = false, bool log_request = true);
-    bool set_destination_posvel(const Vector3f& destination, const Vector3f& velocity, bool use_yaw = false, float yaw_cd = 0.0, bool use_yaw_rate = false, float yaw_rate_cds = 0.0, bool yaw_relative = false);
-    bool set_destination_posvelaccel(const Vector3f& destination, const Vector3f& velocity, const Vector3f& acceleration, bool use_yaw = false, float yaw_cd = 0.0, bool use_yaw_rate = false, float yaw_rate_cds = 0.0, bool yaw_relative = false);
+    void set_accel(const Vector3f& acceleration, bool use_yaw = false, float yaw_rad = 0.0, bool use_yaw_rate = false, float yaw_rate_rads = 0.0, bool yaw_relative = false, bool log_request = true);
+    void set_velocity(const Vector3f& velocity, bool use_yaw = false, float yaw_rad = 0.0, bool use_yaw_rate = false, float yaw_rate_rads = 0.0, bool yaw_relative = false, bool log_request = true);
+    void set_velaccel(const Vector3f& velocity, const Vector3f& acceleration, bool use_yaw = false, float yaw_rad = 0.0, bool use_yaw_rate = false, float yaw_rate_rads = 0.0, bool yaw_relative = false, bool log_request = true);
+    bool set_destination_posvel(const Vector3f& destination, const Vector3f& velocity, bool use_yaw = false, float yaw_rad = 0.0, bool use_yaw_rate = false, float yaw_rate_rads = 0.0, bool yaw_relative = false);
+    bool set_destination_posvelaccel(const Vector3f& destination, const Vector3f& velocity, const Vector3f& acceleration, bool use_yaw = false, float yaw_rad = 0.0, bool use_yaw_rate = false, float yaw_rate_rads = 0.0, bool yaw_relative = false);
 
     // get position, velocity and acceleration targets
     const Vector3p& get_target_pos() const;
@@ -1127,9 +1127,9 @@ public:
 
     bool is_taking_off() const override;
     
-    bool set_speed_xy(float speed_xy_cms) override;
-    bool set_speed_up(float speed_up_cms) override;
-    bool set_speed_down(float speed_down_cms) override;
+    bool set_speed_xy_cms(float speed_xy_cms) override;
+    bool set_speed_up_cms(float speed_up_cms) override;
+    bool set_speed_down_cms(float speed_down_cms) override;
 
     // initialises position controller to implement take-off
     // takeoff_alt_cm is interpreted as alt-above-home (in cm) or alt-above-terrain if a rangefinder is available
@@ -1205,7 +1205,7 @@ private:
     void velaccel_control_run();
     void pause_control_run();
     void posvelaccel_control_run();
-    void set_yaw_state(bool use_yaw, float yaw_cd, bool use_yaw_rate, float yaw_rate_cds, bool relative_angle);
+    void set_yaw_state_rad(bool use_yaw, float yaw_rad, bool use_yaw_rate, float yaw_rate_rads, bool relative_angle);
 
     // controls which controller is run (pos or vel):
     static SubMode guided_mode;
@@ -1475,9 +1475,9 @@ public:
 
     bool use_pilot_yaw() const override;
 
-    bool set_speed_xy(float speed_xy_cms) override;
-    bool set_speed_up(float speed_up_cms) override;
-    bool set_speed_down(float speed_down_cms) override;
+    bool set_speed_xy_cms(float speed_xy_cms) override;
+    bool set_speed_up_cms(float speed_up_cms) override;
+    bool set_speed_down_cms(float speed_down_cms) override;
 
     // RTL states
     enum class SubMode : uint8_t {

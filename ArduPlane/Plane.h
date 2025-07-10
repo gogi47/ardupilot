@@ -437,6 +437,7 @@ private:
     // The amount current ground speed is below min ground speed.  Centimeters per second
     int32_t groundspeed_undershoot;
     bool groundspeed_undershoot_is_valid;
+    float last_groundspeed_undershoot_offset;
 
     // speed scaler for control surfaces, updated at 10Hz
     float surface_speed_scaler = 1.0;
@@ -839,12 +840,6 @@ private:
     static const AP_Scheduler::Task scheduler_tasks[];
     static const AP_Param::Info var_info[];
 
-    // time that rudder arming has been running
-    uint32_t rudder_arm_timer;
-
-    // have we seen neutral rudder since arming with rudder?
-    bool seen_neutral_rudder;
-
 #if HAL_QUADPLANE_ENABLED
     // support for quadcopter-plane
     QuadPlane quadplane{ahrs};
@@ -1019,7 +1014,7 @@ private:
 
     bool is_land_command(uint16_t cmd) const;
 
-    bool do_change_speed(uint8_t speedtype, float speed_target_ms, float rhtottle_pct);
+    bool do_change_speed(SPEED_TYPE speedtype, float speed_target_ms, float rhtottle_pct);
     /*
       return true if in a specific AUTO mission command
     */
@@ -1124,7 +1119,6 @@ private:
     void init_rc_in();
     void init_rc_out_main();
     void init_rc_out_aux();
-    void rudder_arm_disarm_check();
     void read_radio();
     int16_t rudder_input(void);
     void control_failsafe();
@@ -1219,6 +1213,7 @@ private:
     bool have_reverse_thrust(void) const;
     float get_throttle_input(bool no_deadzone=false) const;
     float get_adjusted_throttle_input(bool no_deadzone=false) const;
+    bool reverse_thrust_enabled(UseReverseThrust use_reverse_thrust_option) const;
 
 #if AP_SCRIPTING_ENABLED
     // support for NAV_SCRIPT_TIME mission command

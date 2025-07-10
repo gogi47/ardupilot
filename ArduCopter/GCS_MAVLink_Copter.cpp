@@ -663,9 +663,9 @@ MAV_RESULT GCS_MAVLINK_Copter::handle_MAV_CMD_CONDITION_YAW(const mavlink_comman
         if ((packet.param1 >= 0.0f)   &&
             (packet.param1 <= 360.0f) &&
             (is_zero(packet.param4) || is_equal(packet.param4,1.0f))) {
-            copter.flightmode->auto_yaw.set_fixed_yaw(
-                packet.param1,
-                packet.param2,
+            copter.flightmode->auto_yaw.set_fixed_yaw_rad(
+                radians(packet.param1),
+                radians(packet.param2),
                 (int8_t)packet.param3,
                 is_positive(packet.param4));
             return MAV_RESULT_ACCEPTED;
@@ -675,29 +675,33 @@ MAV_RESULT GCS_MAVLINK_Copter::handle_MAV_CMD_CONDITION_YAW(const mavlink_comman
 
 MAV_RESULT GCS_MAVLINK_Copter::handle_MAV_CMD_DO_CHANGE_SPEED(const mavlink_command_int_t &packet)
 {
-        // param1 : Speed type (0 or 1=Ground Speed, 2=Climb Speed, 3=Descent Speed)
-        // param2 : new speed in m/s
-        // param3 : unused
-        // param4 : unused
-        if (packet.param2 > 0.0f) {
-            if (packet.param1 > 2.9f) { // 3 = speed down
-                if (copter.flightmode->set_speed_down(packet.param2 * 100.0f)) {
-                    return MAV_RESULT_ACCEPTED;
-                }
-                return MAV_RESULT_FAILED;
-            } else if (packet.param1 > 1.9f) { // 2 = speed up
-                if (copter.flightmode->set_speed_up(packet.param2 * 100.0f)) {
-                    return MAV_RESULT_ACCEPTED;
-                }
-                return MAV_RESULT_FAILED;
-            } else {
-                if (copter.flightmode->set_speed_xy(packet.param2 * 100.0f)) {
-                    return MAV_RESULT_ACCEPTED;
-                }
-                return MAV_RESULT_FAILED;
-            }
-        }
-        return MAV_RESULT_FAILED;
+    if (!is_positive(packet.param2)) {
+        // Target speed must be larger than zero
+        return MAV_RESULT_DENIED;
+    }
+
+    const float speed_cms = packet.param2 * 100.0;
+
+    bool success = false;
+    switch (SPEED_TYPE(packet.param1)) {
+        case SPEED_TYPE_ENUM_END:
+            return MAV_RESULT_DENIED;
+
+        case SPEED_TYPE_AIRSPEED: // Airspeed is treated as ground speed for GCS compatibility
+        case SPEED_TYPE_GROUNDSPEED:
+            success = copter.flightmode->set_speed_xy_cms(speed_cms);
+            break;
+
+        case SPEED_TYPE_CLIMB_SPEED:
+            success = copter.flightmode->set_speed_up_cms(speed_cms);
+            break;
+
+        case SPEED_TYPE_DESCENT_SPEED:
+            success = copter.flightmode->set_speed_down_cms(speed_cms);
+            break;
+    }
+
+    return success ? MAV_RESULT_ACCEPTED : MAV_RESULT_FAILED;
 }
 
 #if MODE_AUTO_ENABLED
@@ -1113,26 +1117,26 @@ void GCS_MAVLINK_Copter::handle_message_set_position_target_local_ned(const mavl
     }
 
     // prepare yaw
-    float yaw_cd = 0.0f;
+    float yaw_rad = 0.0f;
     bool yaw_relative = false;
-    float yaw_rate_cds = 0.0f;
+    float yaw_rate_rads = 0.0f;
     if (!yaw_ignore) {
-        yaw_cd = degrees(packet.yaw) * 100.0f;
+        yaw_rad = packet.yaw;
         yaw_relative = packet.coordinate_frame == MAV_FRAME_BODY_NED || packet.coordinate_frame == MAV_FRAME_BODY_OFFSET_NED;
     }
     if (!yaw_rate_ignore) {
-        yaw_rate_cds = degrees(packet.yaw_rate) * 100.0f;
+        yaw_rate_rads = packet.yaw_rate;
     }
 
     // send request
     if (!pos_ignore && !vel_ignore) {
-        copter.mode_guided.set_destination_posvelaccel(pos_vector, vel_vector, accel_vector, !yaw_ignore, yaw_cd, !yaw_rate_ignore, yaw_rate_cds, yaw_relative);
+        copter.mode_guided.set_destination_posvelaccel(pos_vector, vel_vector, accel_vector, !yaw_ignore, yaw_rad, !yaw_rate_ignore, yaw_rate_rads, yaw_relative);
     } else if (pos_ignore && !vel_ignore) {
-        copter.mode_guided.set_velaccel(vel_vector, accel_vector, !yaw_ignore, yaw_cd, !yaw_rate_ignore, yaw_rate_cds, yaw_relative);
+        copter.mode_guided.set_velaccel(vel_vector, accel_vector, !yaw_ignore, yaw_rad, !yaw_rate_ignore, yaw_rate_rads, yaw_relative);
     } else if (pos_ignore && vel_ignore && !acc_ignore) {
-        copter.mode_guided.set_accel(accel_vector, !yaw_ignore, yaw_cd, !yaw_rate_ignore, yaw_rate_cds, yaw_relative);
+        copter.mode_guided.set_accel(accel_vector, !yaw_ignore, yaw_rad, !yaw_rate_ignore, yaw_rate_rads, yaw_relative);
     } else if (!pos_ignore && vel_ignore && acc_ignore) {
-        copter.mode_guided.set_destination(pos_vector, !yaw_ignore, yaw_cd, !yaw_rate_ignore, yaw_rate_cds, yaw_relative, false);
+        copter.mode_guided.set_destination(pos_vector, !yaw_ignore, yaw_rad, !yaw_rate_ignore, yaw_rate_rads, yaw_relative, false);
     } else {
         // input is not valid so stop
         copter.mode_guided.init(true);
@@ -1205,13 +1209,13 @@ void GCS_MAVLINK_Copter::handle_message_set_position_target_global_int(const mav
     }
 
     // prepare yaw
-    float yaw_cd = 0.0f;
-    float yaw_rate_cds = 0.0f;
+    float yaw_rad = 0.0f;
+    float yaw_rate_rads = 0.0f;
     if (!yaw_ignore) {
-        yaw_cd = degrees(packet.yaw) * 100.0f;
+        yaw_rad = packet.yaw;
     }
     if (!yaw_rate_ignore) {
-        yaw_rate_cds = degrees(packet.yaw_rate) * 100.0f;
+        yaw_rate_rads = packet.yaw_rate;
     }
 
     // send targets to the appropriate guided mode controller
@@ -1229,13 +1233,13 @@ void GCS_MAVLINK_Copter::handle_message_set_position_target_global_int(const mav
             copter.mode_guided.init(true);
             return;
         }
-        copter.mode_guided.set_destination_posvel(pos_neu_cm, vel_vector, !yaw_ignore, yaw_cd, !yaw_rate_ignore, yaw_rate_cds);
+        copter.mode_guided.set_destination_posvel(pos_neu_cm, vel_vector, !yaw_ignore, yaw_rad, !yaw_rate_ignore, yaw_rate_rads);
     } else if (pos_ignore && !vel_ignore) {
-        copter.mode_guided.set_velaccel(vel_vector, accel_vector, !yaw_ignore, yaw_cd, !yaw_rate_ignore, yaw_rate_cds);
+        copter.mode_guided.set_velaccel(vel_vector, accel_vector, !yaw_ignore, yaw_rad, !yaw_rate_ignore, yaw_rate_rads);
     } else if (pos_ignore && vel_ignore && !acc_ignore) {
-        copter.mode_guided.set_accel(accel_vector, !yaw_ignore, yaw_cd, !yaw_rate_ignore, yaw_rate_cds);
+        copter.mode_guided.set_accel(accel_vector, !yaw_ignore, yaw_rad, !yaw_rate_ignore, yaw_rate_rads);
     } else if (!pos_ignore && vel_ignore && acc_ignore) {
-        copter.mode_guided.set_destination(loc, !yaw_ignore, yaw_cd, !yaw_rate_ignore, yaw_rate_cds);
+        copter.mode_guided.set_destination(loc, !yaw_ignore, yaw_rad, !yaw_rate_ignore, yaw_rate_rads);
     } else {
         // input is not valid so stop
         copter.mode_guided.init(true);

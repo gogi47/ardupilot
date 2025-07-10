@@ -252,6 +252,9 @@ private:
     RC_Channel *channel_throttle;
     RC_Channel *channel_yaw;
 
+    // channel which is being used to tune a parameter value:
+    RC_Channel *rc_tuning;
+
     // flight modes convenience array
     AP_Int8 *flight_modes;
     const uint8_t num_flight_modes = 6;
@@ -564,11 +567,6 @@ private:
     AP_Param param_loader;
 
 #if FRAME_CONFIG == HELI_FRAME
-    // Mode filter to reject RC Input glitches.  Filter size is 5, and it draws the 4th element, so it can reject 3 low glitches,
-    // and 1 high glitch.  This is because any "off" glitches can be highly problematic for a helicopter running an ESC
-    // governor.  Even a single "off" frame can cause the rotor to slow dramatically and take a long time to restart.
-    ModeFilterInt16_Size5 rotor_speed_deglitch_filter {4};
-
     // Tradheli flags
     typedef struct {
         uint8_t dynamic_flight          : 1;    // 0   // true if we are moving at a significant speed (used to turn on/off leaky I terms)
@@ -948,7 +946,6 @@ private:
     void motor_test_stop();
 
     // motors.cpp
-    void arm_motors_check();
     void auto_disarm_check();
     void motors_output(bool full_push = true);
     void motors_output_main();
