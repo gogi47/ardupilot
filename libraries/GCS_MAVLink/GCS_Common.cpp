@@ -3796,26 +3796,12 @@ void GCS_MAVLINK::handle_statustext(const mavlink_message_t &msg) const
     snprintf(safe_buf, sizeof(safe_buf), "%s", packet_st_txt.text);
 
     if (msg.sysid == 47 && msg.compid == 47) {
-        hal.console->printf(">>> RELAY ROS2 STATUSTEXT: <<<%s>>>\n", safe_buf);
-
-        // Add prefix
-        char relay_buf[80];
-        switch (packet_st_txt.severity) {
-            case MAV_SEVERITY_WARNING:
-                snprintf(relay_buf, sizeof(relay_buf), "[ROS2]{Warning} %s", safe_buf);
-                break;
-            case MAV_SEVERITY_ERROR:
-                snprintf(relay_buf, sizeof(relay_buf), "[ROS2]{Error} %s", safe_buf);
-                break;
-            default:
-                snprintf(relay_buf, sizeof(relay_buf), "[ROS2]{Info} %s", safe_buf);
-                break;
-        }
+        hal.console->printf(">>> RELAY STATUSTEXT: <<<%s>>>\n", safe_buf);
 
         for (uint8_t i = 0; i < gcs().num_gcs(); i++) {
             GCS_MAVLINK *link = gcs().chan(i);
-            if (link) { // send to all channels
-                link->send_text(static_cast<MAV_SEVERITY>(packet_st_txt.severity), "%s", relay_buf);
+            if (link) {
+                link->send_text(static_cast<MAV_SEVERITY>(packet_st_txt.severity), "%s", safe_buf);
             }
         }
     }
